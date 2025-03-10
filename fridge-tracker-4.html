@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Fridge Tracker</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --light-bg: #f5f7ff;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --text-light: #666666;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --border: #e5e7eb;
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text);
+            padding-bottom: calc(80px + var(--safe-area-inset-bottom));
+            overflow-x: hidden;
+        }
+
+        /* HEADER STYLES */
+        .header {
+            background-color: var(--primary);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        /* SEARCH BAR */
+        .search-container {
+            padding: 16px;
+            background-color: var(--light-bg);
+            position: sticky;
+            top: 56px;
+            z-index: 5;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-bar {
+            display: flex;
+            background-color: white;
+            border-radius: 8px;
+            padding: 0 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            align-items: center;
+            height: 48px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            border: none;
+            padding: 0 12px;
+            font-size: 16px;
+            height: 100%;
+            background: transparent;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+        }
+
+        .search-bar i {
+            color: var(--text-light);
+            font-size: 18px;
+        }
+
+        /* FILTER SECTION */
+        .filter-container {
+            padding: 0 16px 16px;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .filter-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-button, .sort-button {
+            background-color: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            white-space: nowrap;
+            font-size: 14px;
+            color: var(--text);
+            flex-shrink: 0;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-button.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* ITEM LIST */
+        .items-container {
+            padding: 8px 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            margin-bottom: 24px;
+        }
+
+        .item-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+
+        .item-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .item-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-right: 16px;
+        }
+
+        .item-category {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 16px;
+            background-color: #e5e7eb;
+            color: var(--text);
+            display: inline-block;
+        }
+
+        .category-dairy { background-color: #e0f2fe; color: #0284c7; }
+        .category-fruits { background-color: #dcfce7; color: #16a34a; }
+        .category-vegetables { background-color: #d1fae5; color: #059669; }
+        .category-meat { background-color: #fee2e2; color: #dc2626; }
+        .category-beverages { background-color: #dbeafe; color: #2563eb; }
+        .category-leftovers { background-color: #fef3c7; color: #d97706; }
+        .category-other { background-color: #f3f4f6; color: #4b5563; }
+
+        .item-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .item-detail {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-label {
+            color: var(--text-light);
+            margin-bottom: 2px;
+            font-size: 12px;
+        }
+
+        .detail-value {
+            font-weight: 500;
+        }
+
+        .expiry-warning {
+            color: var(--danger);
+        }
+
+        .expiry-caution {
+            color: var(--warning);
+        }
+
+        .item-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .action-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f3f4f6;
+            border: none;
+            color: var(--text);
+            font-size: 18px;
+        }
+
+        .action-button.delete {
+            background-color: #fee2e2;
+            color: var(--danger);
+        }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            padding-bottom: calc(12px + var(--safe-area-inset-bottom));
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+            z-index: 100;
+        }
+
+        .nav-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            background: none;
+            border: none;
+            font-size: 12px;
+            gap: 4px;
+            padding: 8px;
+        }
+
+        .nav-button i {
+            font-size: 20px;
+        }
+
+        .nav-button.active {
+            color: var(--primary);
+        }
+
+        .add-button-container {
+            margin-top: -32px;
+        }
+
+        .add-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border: 4px solid white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* FORM MODAL */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+        }
+
+        .form-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            padding: 20px 16px;
+            padding-bottom: calc(20px + var(--safe-area-inset-bottom));
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1001;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .form-visible {
+            transform: translateY(0);
+        }
+
+        .form-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .form-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-light);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            height: 48px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 16px;
+            background-color: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.2);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        textarea.form-control {
+            height: 100px;
+            padding: 12px;
+            resize: none;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 48px;
+            padding: 0 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:active {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-outline:active {
+            background-color: #f3f4f6;
+        }
+
+        /* CONFIRM DELETE MODAL */
+        .confirm-modal {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .confirm-content {
+            background-color: white;
+            border-radius: 12px;
+            width: 85%;
+            max-width: 320px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .confirm-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .confirm-message {
+            margin-bottom: 24px;
+            color: var(--text-light);
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .confirm-actions .btn {
+            flex: 1;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        /* NOTIFICATIONS */
+        .notification-container {
+            position: fixed;
+            top: 80px;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 999;
+            pointer-events: none;
+        }
+
+        .notification {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 90%;
+            max-width: 400px;
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .notification i {
+            font-size: 20px;
+        }
+
+        .notification-success i {
+            color: var(--success);
+        }
+
+        .notification-error i {
+            color: var(--danger);
+        }
+
+        .notification-warning i {
+            color: var(--warning);
+        }
+
+        .notification-info i {
+            color: var(--primary);
+        }
+
+        /* ANIMATIONS */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <div class="header">
+        <h1>Fridge Tracker</h1>
+    </div>
+
+    <!-- SEARCH AND FILTERS -->
+    <div class="search-container">
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Search items...">
+        </div>
+    </div>
+    
+    <div class="filter-container">
+        <button class="filter-button active" data-category="all">All Items</button>
+        <button class="filter-button" data-category="dairy">Dairy</button>
+        <button class="filter-button" data-category="fruits">Fruits</button>
+        <button class="filter-button" data-category="vegetables">Vegetables</button>
+        <button class="filter-button" data-category="meat">Meat</button>
+        <button class="filter-button" data-category="beverages">Beverages</button>
+        <button class="filter-button" data-category="leftovers">Leftovers</button>
+        <button class="sort-button" id="sortButton">
+            <i class="fas fa-sort"></i> Sort
+        </button>
+    </div>
+
+    <!-- ITEMS LIST -->
+    <div class="items-container" id="itemsContainer">
+        <!-- Items will be dynamically added here -->
+    </div>
+
+    <!-- BOTTOM NAVIGATION -->
+    <div class="bottom-nav">
+        <button class="nav-button active" id="homeButton">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </button>
+        <div class="add-button-container">
+            <button class="add-button" id="addButton">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+        <button class="nav-button" id="settingsButton">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </button>
+    </div>
+
+    <!-- ADD/EDIT ITEM FORM MODAL -->
+    <div class="modal" id="formModal">
+        <div class="form-container" id="formContainer">
+            <div class="form-header">
+                <h2 class="form-title" id="formTitle">Add New Item</h2>
+                <button class="close-button" id="closeForm">&times;</button>
+            </div>
+            
+            <form id="itemForm">
+                <input type="hidden" id="itemId">
+                
+                <div class="form-group">
+                    <label for="itemName">Item Name</label>
+                    <input type="text" class="form-control" id="itemName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="itemCategory">Category</label>
+                    <select class="form-control" id="itemCategory" required>
+                        <option value="">Select Category</option>
+                        <option value="dairy">Dairy</option>
+                        <option value="fruits">Fruits</option>
+                        <option value="vegetables">Vegetables</option>
+                        <option value="meat">Meat</option>
+                        <option value="beverages">Beverages</option>
+                        <option value="leftovers">Leftovers</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="itemQuantity">Quantity</label>
+                        <input type="number" class="form-control" id="itemQuantity" min="1" value="1" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="expiryDate">Expiry Date</label>
+                        <input type="date" class="form-control" id="expiryDate">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="purchaseDate">Purchase Date</label>
+                    <input type="date" class="form-control" id="purchaseDate" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="itemNotes">Notes (Optional)</label>
+                    <textarea class="form-control" id="itemNotes"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancelButton">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CONFIRM DELETE MODAL -->
+    <div class="confirm-modal" id="confirmDeleteModal">
+        <div class="confirm-content">
+            <h3 class="confirm-title">Delete Item</h3>
+            <p class="confirm-message">Are you sure you want to delete <span id="deleteItemName"></span>?</p>
+            <div class="confirm-actions">
+                <button class="btn btn-outline" id="cancelDeleteBtn">Cancel</button>
+                <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SORT OPTIONS MODAL -->
+    <div class="confirm-modal" id="sortModal">
+        <div class="confirm-content" style="text-align: left; padding-bottom: 16px;">
+            <h3 class="confirm-title" style="text-align: center;">Sort Items</h3>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+                <label style="display: flex; align-items: center; gap: 12px;">
+                    <input type="radio" name="sortOption" value="nameAsc" checked> 
+                    <span>Name (A-Z)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 12px;">
+                    <input type="radio" name="sortOption" value="nameDesc"> 
+                    <span>Name (Z-A)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 12px;">
+                    <input type="radio" name="sortOption" value="expiryAsc"> 
+                    <span>Expiry (Soonest First)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 12px;">
+                    <input type="radio" name="sortOption" value="dateAdded"> 
+                    <span>Date Added (Newest First)</span>
+                </label>
+            </div>
+            <div class="confirm-actions">
+                <button class="btn btn-outline" id="cancelSortBtn">Cancel</button>
+                <button class="btn btn-primary" id="applySortBtn">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <script>
+        class FridgeTracker {
+            constructor() {
+                this.items = [];
+                this.currentCategory = 'all';
+                this.currentSort = 'nameAsc';
+                this.editingItemId = null;
+                
+                this.initElements();
+                this.loadItemsFromStorage();
+                this.renderItems();
+                this.setupEventListeners();
+                
+                // Check if this is the first visit
+                if (this.items.length === 0 && !localStorage.getItem('firstVisit')) {
+                    localStorage.setItem('firstVisit', 'true');
+                    this.showAddForm();
+                    this.showNotification('Welcome to Fridge Tracker! Add your first item.', 'info');
+                }
+            }
+            
+            initElements() {
+                // Form elements
+                this.itemForm = document.getElementById('itemForm');
+                this.itemIdInput = document.getElementById('itemId');
+                this.itemNameInput = document.getElementById('itemName');
+                this.itemCategoryInput = document.getElementById('itemCategory');
+                this.itemQuantityInput = document.getElementById('itemQuantity');
+                this.purchaseDateInput = document.getElementById('purchaseDate');
+                this.expiryDateInput = document.getElementById('expiryDate');
+                this.itemNotesInput = document.getElementById('itemNotes');
+                this.formTitle = document.getElementById('formTitle');
+                this.saveButton = document.getElementById('saveButton');
+                
+                // Container elements
+                this.itemsContainer = document.getElementById('itemsContainer');
+                this.formModal = document.getElementById('formModal');
+                this.formContainer = document.getElementById('formContainer');
+                this.confirmDeleteModal = document.getElementById('confirmDeleteModal');
+                this.deleteItemName = document.getElementById('deleteItemName');
+                this.sortModal = document.getElementById('sortModal');
+                
+                // Set default purchase date to today
+                const today = new Date().toISOString().split('T')[0];
+                this.purchaseDateInput.value = today;
+                
+                // Initialize search and filter elements
+                this.searchInput = document.getElementById('searchInput');
+                this.filterButtons = document.querySelectorAll('.filter-button');
+            }
+            
+            setupEventListeners() {
+                // Add/Edit form
+                document.getElementById('addButton').addEventListener('click', () => this.showAddForm());
+                document.getElementById('closeForm').addEventListener('click', () => this.hideForm());
+                document.getElementById('cancelButton').addEventListener('click', () => this.hideForm());
+                this.formModal.addEventListener('click', (e) => {
+                    if (e.target === this.formModal) this.hideForm();
+                });
+                this.itemForm.addEventListener('submit', (e) => this.handleFormSubmit(e));
+                
+                // Sort button
+                document.getElementById('sortButton').addEventListener('click', () => this.showSortModal());
+                document.getElementById('applySortBtn').addEventListener('click', () => this.applySort());
+                document.getElementById('cancelSortBtn').addEventListener('click', () => this.hideSortModal());
+                this.sortModal.addEventListener('click', (e) => {
+                    if (e.target === this.sortModal) this.hideSortModal();
+                });
+                
+                // Delete confirmation
+                document.getElementById('confirmDeleteBtn').addEventListener('click', () => this.deleteItem());
+                document.getElementById('cancelDeleteBtn').addEventListener('click', () => this.hideDeleteConfirm());
+                this.confirmDeleteModal.addEventListener('click', (e) => {
+                    if (e.target === this.confirmDeleteModal) this.hideDeleteConfirm();
+                });
+                
+                // Filter buttons
+                this.filterButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        this.currentCategory = button.getAttribute('data-category');
+                        this.filterButtons.forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        this.filterItems();
+                    });
+                });
+                
+                // Search
+                this.searchInput.addEventListener('input', () => this.filterItems());
+                
+                // Handle iOS constraints for date inputs
+                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                    // Fix for iOS date inputs
+                    const fixIOSDate = (input) => {
+                        input.addEventListener('touchend', () => {
+                            input.type = 'date';
+                        });
+                    };
+                    
+                    fixIOSDate(this.purchaseDateInput);
+                    fixIOSDate(this.expiryDateInput);
+                }
+            }
+            
+            loadItemsFromStorage() {
+                const savedItems = localStorage.getItem('fridgeItems');
+                if (savedItems) {
+                    this.items = JSON.parse(savedItems);
+                }
+            }
+            
+            saveItemsToStorage() {
+                localStorage.setItem('fridgeItems', JSON.stringify(this.items));
+            }
+            
+            renderItems(filteredItems = null) {
+                const itemsToRender = filteredItems || this.getSortedItems();
+                this.itemsContainer.innerHTML = '';
+                
+                if (itemsToRender.length === 0) {
+                    this.renderEmptyState();
+                    return;
+                }
+                
+                itemsToRender.forEach(item => {
+                    const itemCard = this.createItemElement(item);
+                    this.itemsContainer.appendChild(itemCard);
+                });
+            }
+            
+            renderEmptyState() {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                
+                let message = 'No items found';
+                if (this.currentCategory !== 'all') {
+                    message = `No ${this.currentCategory} items found`;
+                } else if (this.searchInput.value) {
+                    message = 'No matching items found';
+                } else if (this.items.length === 0) {
+                    message = 'Your fridge is empty!';
+                }
+                
+                emptyState.innerHTML = `
+                    <i class="fas fa-shopping-basket"></i>
+                    <p>${message}</p>
+                    <button class="btn btn-primary" id="emptyAddButton">
+                        <i class="fas fa-plus"></i> Add Item
+                    </button>
+                `;
+                
+                this.itemsContainer.appendChild(emptyState);
+                document.getElementById('emptyAddButton').addEventListener('click', () => this.showAddForm());
+            }
+            
+            createItemElement(item) {
+                const itemCard = document.createElement('div');
+                itemCard.className = 'item-card fade-in';
+                itemCard.setAttribute('data-id', item.id);
+                
+                const expiryStatus = this.getExpiryStatus(item.expiryDate);
+                
+                itemCard.innerHTML = `
+                    <div class="item-card-header">
+                        <h3 class="item-name">${item.name}</h3>
+                        <span class="item-category category-${item.category}">${this.formatCategory(item.category)}</span>
+                    </div>
+                    <div class="item-details">
+                        <div class="item-detail">
+                            <span class="detail-label">Quantity</span>
+                            <span class="detail-value">${item.quantity}</span>
+                        </div>
+                        <div class="item-detail">
+                            <span class="detail-label">Added</span>
+                            <span class="detail-value">${this.formatDate(item.purchaseDate)}</span>
+                        </div>
+                        ${item.expiryDate ? `
+                        <div class="item-detail">
+                            <span class="detail-label">Expires</span>
+                            <span class="detail-value ${expiryStatus.class}">${this.formatDate(item.expiryDate)}</span>
+                        </div>
+                        <div class="item-detail">
+                            <span class="detail-label">Status</span>
+                            <span class="detail-value ${expiryStatus.class}">${expiryStatus.text}</span>
+                        </div>
+                        ` : ''}
+                        ${item.notes ? `
+                        <div class="item-detail" style="grid-column: 1 / -1">
+                            <span class="detail-label">Notes</span>
+                            <span class="detail-value">${item.notes}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="item-actions">
+                        <button class="action-button edit-button" data-id="${item.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-button delete delete-button" data-id="${item.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Add event listeners
+                itemCard.querySelector('.edit-button').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.editItem(item.id);
+                });
+                
+                itemCard.querySelector('.delete-button').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.showDeleteConfirm(item.id);
+                });
+                
+                return itemCard;
+            }
+            
+            formatCategory(category) {
+                return category.charAt(0).toUpperCase() + category.slice(1);
+            }
+            
+            formatDate(dateString) {
+                const date = new Date(dateString);
+                const month = date.toLocaleString('default', { month: 'short' });
+                const day = date.getDate();
+                return `${month} ${day}`;
+            }
+            
+            getExpiryStatus(expiryDateStr) {
+                if (!expiryDateStr) return { class: '', text: 'No expiry' };
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const expiryDate = new Date(expiryDateStr);
+                expiryDate.setHours(0, 0, 0, 0);
+                
+                const timeDiff = expiryDate - today;
+                const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                
+                if (daysDiff < 0) {
+                    return { 
+                        class: 'expiry-warning', 
+                        text: 'Expired'
+                    };
+                } else if (daysDiff === 0) {
+                    return { 
+                        class: 'expiry-caution', 
+                        text: 'Expires today'
+                    };
+                } else if (daysDiff === 1) {
+                    return { 
+                        class: 'expiry-caution', 
+                        text: 'Expires tomorrow'
+                    };
+                } else if (daysDiff <= 3) {
+                    return { 
+                        class: 'expiry-caution', 
+                        text: `${daysDiff} days left`
+                    };
+                } else {
+                    return { 
+                        class: '', 
+                        text: `${daysDiff} days left`
+                    };
+                }
+            }
+            
+            showAddForm() {
+                this.resetForm();
+                this.formTitle.textContent = 'Add New Item';
+                this.saveButton.textContent = 'Save Item';
+                this.formModal.style.display = 'block';
+                setTimeout(() => {
+                    this.formContainer.classList.add('form-visible');
+                    this.itemNameInput.focus();
+                }, 10);
+            }
+            
+            hideForm() {
+                this.formContainer.classList.remove('form-visible');
+                setTimeout(() => {
+                    this.formModal.style.display = 'none';
+                }, 300);
+            }
+            
+            resetForm() {
+                this.itemForm.reset();
+                this.itemIdInput.value = '';
+                this.editingItemId = null;
+                
+                // Set default purchase date to today
+                const today = new Date().toISOString().split('T')[0];
+                this.purchaseDateInput.value = today;
+                this.itemQuantityInput.value = 1;
+            }
+            
+            handleFormSubmit(event) {
+                event.preventDefault();
+                
+                const itemData = {
+                    name: this.itemNameInput.value.trim(),
+                    category: this.itemCategoryInput.value,
+                    quantity: parseInt(this.itemQuantityInput.value),
+                    purchaseDate: this.purchaseDateInput.value,
+                    expiryDate: this.expiryDateInput.value || null,
+                    notes: this.itemNotesInput.value.trim()
+                };
+                
+                if (this.editingItemId) {
+                    this.updateItem(this.editingItemId, itemData);
+                    this.showNotification('Item updated successfully!', 'success');
+                } else {
+                    this.addItem(itemData);
+                    this.showNotification('Item added successfully!', 'success');
+                }
+                
+                this.hideForm();
+            }
+            
+            addItem(itemData) {
+                const newItem = {
+                    ...itemData,
+                    id: Date.now().toString(),
+                    dateAdded: new Date().toISOString()
+                };
+                
+                this.items.unshift(newItem);
+                this.saveItemsToStorage();
+                this.filterItems();
+            }
+            
+            updateItem(id, updatedData) {
+                const index = this.items.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    this.items[index] = {
+                        ...this.items[index],
+                        ...updatedData,
+                        lastUpdated: new Date().toISOString()
+                    };
+                    this.saveItemsToStorage();
+                    this.filterItems();
+                }
+            }
+            
+            editItem(id) {
+                const item = this.items.find(item => item.id === id);
+                if (!item) return;
+                
+                this.editingItemId = id;
+                this.itemIdInput.value = id;
+                this.itemNameInput.value = item.name;
+                this.itemCategoryInput.value = item.category;
+                this.itemQuantityInput.value = item.quantity;
+                this.purchaseDateInput.value = item.purchaseDate;
+                this.expiryDateInput.value = item.expiryDate || '';
+                this.itemNotesInput.value = item.notes || '';
+                
+                this.formTitle.textContent = 'Edit Item';
+                this.saveButton.textContent = 'Update Item';
+                
+                this.formModal.style.display = 'block';
+                setTimeout(() => {
+                    this.formContainer.classList.add('form-visible');
+                }, 10);
+            }
+            
+            showDeleteConfirm(id) {
+                const item = this.items.find(item => item.id === id);
+                if (!item) return;
+                
+                this.deleteItemName.textContent = item.name;
+                this.confirmDeleteBtn.setAttribute('data-id', id);
+                this.confirmDeleteModal.style.display = 'flex';
+            }
+            
+            hideDeleteConfirm() {
+                this.confirmDeleteModal.style.display = 'none';
+            }
+            
+            deleteItem() {
+                const id = this.confirmDeleteBtn.getAttribute('data-id');
+                const index = this.items.findIndex(item => item.id === id);
+                
+                if (index !== -1) {
+                    // Get the name for the notification
+                    const name = this.items[index].name;
+                    
+                    // Remove the item
+                    this.items.splice(index, 1);
+                    this.saveItemsToStorage();
+                    this.filterItems();
+                    
+                    this.showNotification(`"${name}" has been deleted`, 'info');
+                }
+                
+                this.hideDeleteConfirm();
+            }
+            
+            showSortModal() {
+                // Set the current sort option
+                const sortOptions = document.querySelectorAll('input[name="sortOption"]');
+                sortOptions.forEach(option => {
+                    if (option.value === this.currentSort) {
+                        option.checked = true;
+                    }
+                });
+                
+                this.sortModal.style.display = 'flex';
+            }
+            
+            hideSortModal() {
+                this.sortModal.style.display = 'none';
+            }
+            
+            applySort() {
+                const selectedSort = document.querySelector('input[name="sortOption"]:checked').value;
+                this.currentSort = selectedSort;
+                this.filterItems();
+                this.hideSortModal();
+            }
+            
+            filterItems() {
+                const searchTerm = this.searchInput.value.toLowerCase();
+                
+                let filteredItems = this.items.filter(item => {
+                    const matchesSearch = item.name.toLowerCase().includes(searchTerm) || 
+                                        (item.notes && item.notes.toLowerCase().includes(searchTerm));
+                    const matchesCategory = this.currentCategory === 'all' || item.category === this.currentCategory;
+                    
+                    return matchesSearch && matchesCategory;
+                });
+                
+                filteredItems = this.sortItems(filteredItems);
+                this.renderItems(filteredItems);
+            }
+            
+            sortItems(items) {
+                switch (this.currentSort) {
+                    case 'nameAsc':
+                        return [...items].sort((a, b) => a.name.localeCompare(b.name));
+                    case 'nameDesc':
+                        return [...items].sort((a, b) => b.name.localeCompare(a.name));
+                    case 'expiryAsc':
+                        return [...items].sort((a, b) => {
+                            if (!a.expiryDate) return 1;
+                            if (!b.expiryDate) return -1;
+                            return new Date(a.expiryDate) - new Date(b.expiryDate);
+                        });
+                    case 'dateAdded':
+                        return [...items].sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded));
+                    default:
+                        return items;
+                }
+            }
+            
+            getSortedItems() {
+                return this.sortItems([...this.items]);
+            }
+            
+            showNotification(message, type = 'info') {
+                const container = document.getElementById('notificationContainer');
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                
+                let icon;
+                switch (type) {
+                    case 'success': icon = 'check-circle'; break;
+                    case 'error': icon = 'exclamation-circle'; break;
+                    case 'warning': icon = 'exclamation-triangle'; break;
+                    default: icon = 'info-circle';
+                }
+                
+                notification.innerHTML = `
+                    <i class="fas fa-${icon}"></i>
+                    <div>${message}</div>
+                `;
+                
+                container.appendChild(notification);
+                
+                // Animation
+                setTimeout(() => {
+                    notification.classList.add('show');
+                }, 10);
+                
+                // Remove notification after 3 seconds
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        container.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+        }
+
+        // Initialize the app when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new FridgeTracker();
+            
+            // Handle tap/click events for bottom navigation
+            document.getElementById('homeButton').addEventListener('click', function() {
+                // Already on home screen
+            });
+            
+            document.getElementById('settingsButton').addEventListener('click', function() {
+                app.showNotification('Settings coming soon!', 'info');
+            });
+            
+            // Set up event listeners for modal backgrounds
+            document.querySelectorAll('.modal, .confirm-modal').forEach(modal => {
+                modal.addEventListener('touchmove', e => {
+                    e.preventDefault(); // Prevent scrolling behind modal
+                });
+            });
+        });
+    </script>
+</body>
+</html>
