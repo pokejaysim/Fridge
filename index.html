@@ -1205,12 +1205,12 @@
     </script>
 
     <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script type="module">
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+      import { getFirestore, collection, doc, onSnapshot, setDoc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-    <!-- Simple Sharing Code -->
-    <script>
-      // Firebase configuration
+      // Your web app's Firebase configuration
       const firebaseConfig = {
         apiKey: "AIzaSyAgsUq7lVIDsKK2HPxC6KjR92SRjFvwil4",
         authDomain: "fridge-tracker-25417.firebaseapp.com",
@@ -1222,8 +1222,8 @@
       };
 
       // Initialize Firebase
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.firestore();
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
       
       // Simple sharing helper
       class SimpleSharing {
@@ -1254,7 +1254,8 @@
         // Set up real-time updates
         onItemsChange(callback) {
           // Listen for changes to the items in this room
-          return db.collection('rooms').doc(this.roomCode).onSnapshot(snapshot => {
+          const roomRef = doc(db, 'rooms', this.roomCode);
+          return onSnapshot(roomRef, (snapshot) => {
             const data = snapshot.data() || { items: [] };
             callback(data.items || []);
           });
@@ -1263,7 +1264,8 @@
         // Save items to the room
         async saveItems(items) {
           try {
-            await db.collection('rooms').doc(this.roomCode).set({
+            const roomRef = doc(db, 'rooms', this.roomCode);
+            await setDoc(roomRef, {
               items: items,
               lastUpdated: new Date().toISOString(),
               lastUpdatedBy: this.userName
@@ -1276,12 +1278,20 @@
         }
       }
       
+      // Expose sharing to window so we can access it from outside the module
+      window.initSharing = function() {
+        return new SimpleSharing();
+      };
+    </script>
+    
+    <!-- Integration Script -->
+    <script>
       // Extend your FridgeTracker class with sharing
       document.addEventListener('DOMContentLoaded', function() {
         // Create the sharing helper
-        const sharing = new SimpleSharing();
+        const sharing = window.initSharing();
         
-        // Get the FridgeTracker instance
+        // Get the FridgeTracker instance - this should be the instance from your code
         const app = new FridgeTracker();
         
         // Extend the FridgeTracker instance with sharing features
@@ -1318,10 +1328,7 @@
         // Add a share button to settings
         const settingsBtn = document.getElementById('settingsButton');
         if (settingsBtn) {
-          const originalClick = settingsBtn.onclick;
-          settingsBtn.onclick = function(e) {
-            if (originalClick) originalClick.call(this, e);
-            
+          settingsBtn.addEventListener('click', function() {
             const code = app.sharing.getShareCode();
             app.showNotification(`Your share code: ${code}`, 'info');
             
@@ -1368,7 +1375,7 @@
                 app.showNotification('Please enter a code', 'warning');
               }
             });
-          };
+          });
         }
       });
     </script>
